@@ -1,0 +1,40 @@
+# Source files
+src/
+tests/
+scripts/
+
+# Development files
+*.md
+!README.md
+!CHANGELOG.md
+bun.lock
+biome.json
+tsconfig.json
+
+# Build artifacts
+node_modules/
+.git/
+.gitignore
+
+# Documentation files (except main README and CHANGELOG)
+docs/
+PORTING_GUIDE.md
+UPDATE_GUIDE.md
+QUICK_REFERENCE.md
+COMPLEX_PATTERNS.md
+MARKUP_*.md
+TAX_COURT_*.md
+
+# Test and debug files
+test-*.ts
+debug-*.ts
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
