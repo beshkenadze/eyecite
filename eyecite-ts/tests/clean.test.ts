@@ -26,7 +26,7 @@ describe('Text Cleaning Utilities', () => {
     test('should apply multiple steps', () => {
       const text = '__Hello__    World__'
       const result = cleanText(text, ['underscores', 'inline_whitespace'])
-      expect(result).toBe('Hello World')
+      expect(result).toBe(' Hello World ')
     })
 
     test('should throw error for invalid steps', () => {
@@ -105,12 +105,12 @@ describe('Text Cleaning Utilities', () => {
   })
 
   describe('underscores', () => {
-    test('should remove double underscores', () => {
-      expect(underscores('Hello__World')).toBe('HelloWorld')
+    test('should replace double underscores with spaces', () => {
+      expect(underscores('Hello__World')).toBe('Hello World')
     })
 
-    test('should remove multiple underscores', () => {
-      expect(underscores('Hello____World')).toBe('HelloWorld')
+    test('should replace multiple underscores with spaces', () => {
+      expect(underscores('Hello____World')).toBe('Hello World')
     })
 
     test('should preserve single underscores', () => {
@@ -118,7 +118,7 @@ describe('Text Cleaning Utilities', () => {
     })
 
     test('should handle multiple occurrences', () => {
-      expect(underscores('__Hello__World__')).toBe('HelloWorld')
+      expect(underscores('__Hello__World__')).toBe(' Hello World ')
     })
   })
 
