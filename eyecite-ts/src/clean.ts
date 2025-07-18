@@ -107,7 +107,7 @@ export function allWhitespace(text: string): string {
  * @returns Text without consecutive underscores
  */
 export function underscores(text: string): string {
-  return text.replace(/__+/g, '')
+  return text.replace(/__+/g, ' ')
 }
 
 /**

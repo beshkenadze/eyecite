@@ -132,7 +132,17 @@ export function getCitations(
     }
     // CASE 2: Token is a LawCitationToken
     else if (token instanceof LawCitationToken) {
-      citation = extractLawCitation(document, i)
+      const lawCitations = extractLawCitations(document, i)
+      if (lawCitations.length > 0) {
+        citation = lawCitations[0]
+        // If there are additional citations, add them after the main loop
+        if (lawCitations.length > 1) {
+          for (let j = 1; j < lawCitations.length; j++) {
+            lawCitations[j].document = document
+            citations.push(lawCitations[j])
+          }
+        }
+      }
     }
     // CASE 3: Token is a JournalCitationToken
     else if (token instanceof JournalCitationToken) {
@@ -640,6 +650,116 @@ function extractIdCitation(words: Tokens, index: number): IdCitation {
     undefined, // spanStart
     spanEnd, // spanEnd
   )
+}
+
+/**
+ * Extract law citations from the document, handling multiple sections indicated by §§
+ */
+function extractLawCitations(document: Document, index: number): FullLawCitation[] {
+  const token = document.words[index] as LawCitationToken
+  const sourceText = document.sourceText || ''
+  
+  // Check if the original text contains §§ (multiple sections marker)
+  const tokenStart = token.start
+  const tokenEnd = token.end
+  const tokenText = sourceText.substring(tokenStart, tokenEnd)
+  
+  // Look for §§ pattern in the token and following text
+  const beforeToken = sourceText.substring(Math.max(0, tokenStart - 20), tokenStart)
+  const afterToken = sourceText.substring(tokenEnd, Math.min(sourceText.length, tokenEnd + 200))
+  const contextText = beforeToken + tokenText + afterToken
+  
+  // If we find §§, we need to look for additional sections
+  if (contextText.includes('§§')) {
+    return extractMultipleLawCitations(document, index)
+  }
+  
+  // Otherwise, extract just one citation
+  return [extractLawCitation(document, index)]
+}
+
+/**
+ * Extract multiple law citations when §§ is present
+ */
+function extractMultipleLawCitations(document: Document, index: number): FullLawCitation[] {
+  const token = document.words[index] as LawCitationToken
+  const sourceText = document.sourceText || ''
+  const tokenEnd = token.end
+  
+  // Get the text after the token to find additional sections
+  const afterToken = sourceText.substring(tokenEnd, Math.min(sourceText.length, tokenEnd + 200))
+  
+  // Pattern to match additional sections with optional parentheticals
+  // Matches: ", 778.114 (the FWW method)" or just ", 778.114"
+  const additionalSectionsPattern = /,\s*(\d+(?:\.\d+)*)\s*(?:\(([^)]+)\))?/g
+  
+  const citations: FullLawCitation[] = []
+  
+  // First, create the initial citation
+  const baseCitation = extractLawCitation(document, index)
+  citations.push(baseCitation)
+  
+  // Then look for additional sections
+  let match
+  while ((match = additionalSectionsPattern.exec(afterToken)) !== null) {
+    const sectionNumber = match[1]
+    const parenthetical = match[2]
+    
+    // Create a new citation token for the additional section
+    const additionalToken = new LawCitationToken(
+      match[0], // The matched text
+      tokenEnd + match.index, // Start position
+      tokenEnd + match.index + match[0].length, // End position
+      {
+        reporter: token.reporter,
+        lawType: token.lawType,
+        chapter: token.groups?.chapter,
+        section: sectionNumber,
+        title: token.groups?.title,
+      },
+      token.data
+    )
+    
+    // Create the additional citation
+    const additionalCitation = new FullLawCitation(
+      additionalToken,
+      index, // Same index as original
+      [], // exactEditions
+      [], // variationEditions
+    )
+    
+    // Copy metadata from base citation
+    additionalCitation.metadata.reporter = baseCitation.metadata.reporter
+    additionalCitation.metadata.chapter = baseCitation.metadata.chapter
+    additionalCitation.metadata.section = sectionNumber
+    additionalCitation.metadata.title = baseCitation.metadata.title
+    additionalCitation.metadata.year = baseCitation.metadata.year
+    additionalCitation.metadata.month = baseCitation.metadata.month
+    additionalCitation.metadata.day = baseCitation.metadata.day
+    additionalCitation.metadata.publisher = baseCitation.metadata.publisher
+    
+    // Set the parenthetical if found
+    if (parenthetical) {
+      additionalCitation.metadata.parenthetical = parenthetical
+    }
+    
+    // Copy groups
+    additionalCitation.groups = {
+      reporter: baseCitation.groups?.reporter,
+      chapter: baseCitation.groups?.chapter,
+      section: sectionNumber,
+      title: baseCitation.groups?.title,
+    }
+    
+    // Set year if available
+    if (baseCitation.year) {
+      additionalCitation.year = baseCitation.year
+    }
+    
+    citations.push(additionalCitation)
+  }
+  
+  return citations
 }
 
 /**
